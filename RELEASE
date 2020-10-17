@@ -1,0 +1,24 @@
+fzjlinktest: Version 1.2p1: (2014)
+--------------------------------------------
+
+ - some new options:
+   -I -> number of warmup interations
+   -Z -> test onlt top <num> slowest pairs again
+ - BG/Q port  
+
+fzjlinktest: Version 1.1p5: (July 19th 2011)
+--------------------------------------------
+
+ - restructured source code
+ - parallel and serial (2-stage) SION-I/O of comm matrix
+ - bug fixes
+
+
+fzjlinktest: Version 1.0p1: (April 12th 2010)
+--------------------------------------------
+
+ - version 1.0p2 of fzjlinktest
+   - bug fix in serial test mode
+   - use of I/O (SIONlib) optional in source code
+
+ - first official version 1.0p1 of fzjlinktest

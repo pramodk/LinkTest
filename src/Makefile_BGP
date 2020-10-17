@@ -1,0 +1,134 @@
+#/****************************************************************************
+#**  fzjlinktest                                                            **
+#*****************************************************************************
+#**  Copyright (c) 2008-2009                                                **
+#**  Forschungszentrum Juelich, Juelich Supercomputing Centre               **
+#**                                                                         **
+#**  See the file COPYRIGHT in the package base directory for details       **
+#****************************************************************************/
+
+
+SIONLIB_INST=/homeb/zam/zdv087/releases/sionlib/BGP
+
+LARGEFILE=-D_FILE_OFFSET_BITS=64
+
+SIONLIB_USE_FLAG   = -DUSE_SION
+CFLAGS_SIONLIB     = $(LARGEFILE) `$(SIONLIB_INST)/bin/sionconfig --cflags --fe --ser`
+CFLAGS_SIONLIB_MPI = $(LARGEFILE) `$(SIONLIB_INST)/bin/sionconfig --cflags --be --mpi`
+LIBS_SIONLIB       = `$(SIONLIB_INST)/bin/sionconfig --libs --ser --fe` 
+LIBS_SIONLIB_MPI   = `$(SIONLIB_INST)/bin/sionconfig --libs --mpi --be`
+
+PLATFORM_FLAG= -DLINKTEST_BGP
+
+CC     = xlc
+BGCC   = bgxlc
+MPICC  = mpixlc
+MPIGCC = mpicc
+
+CFLAGS     =  -g -DUSELQBUFFERSEND -DBCASTDT $(PLATFORM_FLAG)
+CFLAGS_MPI =  -g -DUSELQBUFFERSEND -DBCASTDT 
+GCCFLAGS   =  $(PLATFORM_FLAG) $(LARGEFILE) -g -DUSELQBUFFERSEND -DBCASTDT
+
+BGP_SYS = /bgsys/drivers/ppcfloor/
+BGP_CFLAGS   = -I$(BGP_SYS)/comm/include -I$(BGP_SYS)/arch/include -I$(BGP_SYS)/gnu-linux/powerpc-bgp-linux/sys-include/ -D_BGP -g
+
+LIBS_MPI = -g
+LIBS     =  -lm  -g
+
+#default: mpilinktest pingponganalysis limqueuetest randomtest mpicolltest
+default: mpilinktest pingponganalysis pingponganalysis_par
+
+# Linktest
+limprioqueue.o: limprioqueue.c
+	$(BGCC) $(CFLAGS) -c limprioqueue.c 
+
+mpilinktest_mapping.o:  mpilinktest_mapping.c
+	$(MPIGCC) $(GCCFLAGS) $(BGP_CFLAGS) -c mpilinktest_mapping.c 
+
+mpilinktest_output_sion.o:   mpilinktest_output_sion.c mpilinktest_output_sion.h
+	$(BGCC) $(CFLAGS) $(SIONLIB_USE_FLAG) $(CFLAGS_SIONLIB) -c mpilinktest_output_sion.c 
+
+mpilinktest_output_sion_par.o:   mpilinktest_output_sion_par.c mpilinktest_output_sion_par.h
+	$(MPICC) $(CFLAGS_MPI) $(SIONLIB_USE_FLAG) $(CFLAGS_SIONLIB_MPI) -c mpilinktest_output_sion_par.c 
+
+mpilinktest_util.o:   mpilinktest_util.c mpilinktest_util.h
+	$(MPICC) $(CFLAGS_MPI) -c mpilinktest_util.c 
+
+mpilinktest_datastructures.o:   mpilinktest_datastructures.c mpilinktest_datastructures.h
+	$(BGCC) $(CFLAGS) -c mpilinktest_datastructures.c 
+
+mpilinktest_datastructures_par.o:   mpilinktest_datastructures_par.c mpilinktest_datastructures_par.h mpilinktest_datastructures.h
+	$(MPICC) $(CFLAGS_MPI) -c mpilinktest_datastructures_par.c 
+
+mpilinktest_util_machine.o:   mpilinktest_util_machine.c mpilinktest_util_machine.h
+	$(BGCC) $(CFLAGS) -c mpilinktest_util_machine.c 
+
+mpilinktest_kernel.o:   mpilinktest_kernel.c mpilinktest_kernel.h
+	$(MPICC) $(CFLAGS_MPI) -c mpilinktest_kernel.c 
+
+mpilinktest.o: mpilinktest.c mpilinktest_util.h mpilinktest_util_machine.h mpilinktest_kernel.h mpilinktest_output_sion.h mpilinktest_mapping.h limprioqueue.h Makefile_BGP
+	$(MPICC) $(CFLAGS_MPI) $(SIONLIB_USE_FLAG) -c mpilinktest.c 
+
+mpilinktest:   $(SIONLIB_INST)/bin/sionconfig mpilinktest.o mpilinktest_kernel.o mpilinktest_datastructures.o mpilinktest_datastructures_par.o mpilinktest_util.o mpilinktest_util_machine.o mpilinktest_output_sion.o mpilinktest_output_sion_par.o mpilinktest_mapping.o limprioqueue.o 
+	$(MPICC) $(CFLAGS_MPI) -o mpilinktest mpilinktest.o mpilinktest_kernel.o mpilinktest_datastructures.o mpilinktest_datastructures_par.o mpilinktest_util.o mpilinktest_util_machine.o mpilinktest_output_sion.o mpilinktest_output_sion_par.o mpilinktest_mapping.o limprioqueue.o  $(LIBS_MPI) $(LIBS_SIONLIB_MPI)
+
+
+# Analyze
+ppmwrite.o:   ppmwrite.c
+	$(CC) $(CFLAGS) -c ppmwrite.c 
+
+postscript_driver.o:   postscript_driver.c postscript_driver.h
+	$(CC) $(CFLAGS) -c postscript_driver.c 
+
+pingponganalysis_tools.o:   pingponganalysis_tools.c pingponganalysis_tools.h
+	$(CC) $(CFLAGS) $(SIONLIB_USE_FLAG) $(CFLAGS_SIONLIB) -c pingponganalysis_tools.c 
+
+pingponganalysis.o:   pingponganalysis.c
+	$(CC) $(CFLAGS) $(SIONLIB_USE_FLAG) $(CFLAGS_SIONLIB) -c pingponganalysis.c 
+
+pingponganalysis:   pingponganalysis.o ppmwrite.o limprioqueue.o postscript_driver.o pingponganalysis_tools.o
+	$(CC) $(CFLAGS) $(SIONLIB_USE_FLAG) -o pingponganalysis pingponganalysis.o ppmwrite.o limprioqueue.o postscript_driver.o pingponganalysis_tools.o $(LIBS) $(LIBS_SIONLIB)
+
+# Analyze (par)
+ppmwrite_par.o:   ppmwrite.c
+	$(MPICC) $(CFLAGS) -o ppmwrite_par.o -c ppmwrite.c 
+
+postscript_driver_par.o:   postscript_driver.c postscript_driver.h
+	$(MPICC) $(CFLAGS) -o postscript_driver_par.o -c postscript_driver.c 
+
+pingponganalysis_tools_par.o:   pingponganalysis_tools.c pingponganalysis_tools.h
+	$(MPICC) $(CFLAGS) $(SIONLIB_USE_FLAG) $(CFLAGS_SIONLIB) -o pingponganalysis_tools_par.o -c pingponganalysis_tools.c 
+
+pingponganalysis_par.o:   pingponganalysis_par.c
+	$(MPICC) $(CFLAGS) $(SIONLIB_USE_FLAG) $(CFLAGS_SIONLIB) -c pingponganalysis_par.c 
+
+pingponganalysis_par:   pingponganalysis_par.o ppmwrite_par.o postscript_driver_par.o pingponganalysis_tools_par.o
+	$(MPICC) $(CFLAGS) $(SIONLIB_USE_FLAG) -o pingponganalysis_par pingponganalysis_par.o ppmwrite_par.o postscript_driver_par.o pingponganalysis_tools_par.o $(LIBS) $(LIBS_SIONLIB)
+
+
+# Test & Tools
+mpicolltest.o: mpicolltest.c Makefile_BGP
+	$(MPICC) $(CFLAGS_MPI) $(BGCFLAGS) -c mpicolltest.c 
+
+mpicolltest:    mpicolltest.o
+	$(MPICC) $(CFLAGS_MPI) -o mpicolltest  mpicolltest.o $(LIBS_MPI) 
+	cp mpicolltest ..
+
+limqueuetest.o:   limqueuetest.c
+	$(CC) $(CFLAGS) -c limqueuetest.c 
+
+limqueuetest:   limqueuetest.o limprioqueue.o
+	$(CC) $(CFLAGS) -o limqueuetest limqueuetest.o limprioqueue.o $(LIBS)
+	cp limqueuetest ..
+
+randomtest.o:   randomtest.c
+	$(CC) $(CFLAGS) -c randomtest.c 
+
+randomtest:   randomtest.o
+	$(CC) $(CFLAGS) -o randomtest randomtest.o $(LIBS)
+	cp randomtest ..
+
+clean::
+	rm -rf *.o  *~ *core*
+	rm -rf mpilinktest
+

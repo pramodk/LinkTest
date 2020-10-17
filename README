@@ -1,0 +1,96 @@
+*****************************************************************************
+**  LinkTest                                                               **
+*****************************************************************************
+**  Copyright (c) 2008-2015                                                **
+**  Forschungszentrum Juelich, Juelich Supercomputing Centre               **
+**                                                                         **
+**  See the file COPYRIGHT in the package base directory for details       **
+*****************************************************************************
+
+LinkTest: Installation and Usage 
+--------------------------------
+14.01.15, W.Frings
+
+The mpilinktest program is a parallel ping-pong test between all
+connections of a machine. Output of this program is a full
+communication matrix which shows the bandwidth between each processor
+pair and a report including the minimum bandwidth. The linktest runs
+for n processors in n steps where in each step n/2 pairs of processors
+will perform the MPI pingpong test (3 iterations, 128 kB
+messages). The selection of the pairs is random but after running all
+steps all possible pairs are covered.
+
+
+- Directory structure:
+        ./src                   --> source of linktest
+
+- Installation
+        
+	Install SIONlib
+
+        Compile linktest
+        > cd ./src
+
+        check Makefile_LINUX or Makefile_BGP in ./src 
+	  add correct path to SIONlib install directory
+ 
+        > gmake -f Makefile_LINUX or Makefile_BGP
+        --> generates ./mpilinktest        (the linktest program)
+                      ./pingponganalysis   (analysis program for comm. matrix)
+       
+- Running mpilinktest: (example)
+
+   mpirun -np <#tasks> ./mpilinktest <options>
+
+   with the following optional options (default values in parathesis):
+
+         [-a 0|1]                  do alltoall mode (0 or 1)             (0) 
+         [-i <iterations>]         number of pingpong iterations         (3) 
+         [-I <iterations>]         number of warmup pingpong iterations  (0) 
+         [-s <size>]               message size in Bytes            (131072) 
+         [-k <size>]               message size in KBytes             (128k) 
+         [-M 0|1]                  randomized processor numbers          (0) 
+         [-S 0|1]                  run in a serialized mode              (0) 
+         [-W 0|1]                  write result file (sion)              (1) 
+         [-Y 0|1]                  use serial (0) or parallel I/O (1)    (1)
+	 [-Z <num>]                test top <num> slowest pairs again (ntasks)
+         [-T <min>]                run <min> minutes, repeating 
+	     			   the test                        (-1, off) 
+  Example:
+
+       mpirun -np 128 ./mpilinktest -a 1 -k 128 -i 3
+       
+       performs serial pingpong test with 128 KB  messages and 3 iterations, after
+       each step a MPI alltoall operation will be performed
+       
+
+- Running pingponganalysis: 
+
+  Usage: ./pingponganalysis <options> insionfn
+
+  with the following optional options (default values in parathesis):
+
+         [-a]                      generate accesspattern file (PPM)
+         [-A]                      generate accesspattern file (ASCII)
+  	 [-B]                      generate badlink list (ASCII)
+  	 [-d]                      generate distancepattern file (PPM)
+  	 [-b]                      generate bandwidthpattern file (PPM)
+  	 [-l] <minbw>              min. bandwidth, conection below will be reported  (def. 1 MB/s)
+  	 [-L] <maxbw>              max. bandwidth, conection above will be reported  (def. 10000 MB/s)
+  	 [-g]                      generate gnuplot 2d input file
+  	 [-p]                      generate postscript report
+  	 [-v]                      verbose mode
+
+
+        Output:
+         ./pingpong_results_bin.sion: communication matrix in sion format
+         
+        Analysis of communication matrix:
+        ./pingponganalysis -l 1.5 -p ./pingpong_results_bin.sion
+        
+        --> reports connections below 1.5 MB/s on stdout
+        --> generates distribution.dat distribution_bw.dat (histogram of timinngs and bandwidths)
+	--> generates PostScript report imn file report_fzjlinktest.ps 
+        
+
+        
